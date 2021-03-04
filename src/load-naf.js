@@ -1,3 +1,7 @@
+import resolveQuery from "./resolve-query";
+import buildLink from "./build-link";
+import createRubriques from "./create-rubriques";
+import NIVEAUX from "./naf-niveaux";
 const fs = require("fs");
 
 const describe =
@@ -25,37 +29,14 @@ function createLevelMap(naf) {
   }, {});
 }
 
-function buildLink(rel, href) {
-  return { rel, href, method: "GET" };
-}
-
-function createLinks(rubriques, version) {
-  return rubriques.map(function ({ code, niveau }) {
-    return buildLink(niveau, `/${version}/naf-rev2/${niveau}/${code}`);
-  });
-}
-
 function makeRoot(naf, version) {
+  const links = Object.keys(NIVEAUX).map(function (name) {
+    return buildLink(name, `/${version}/naf-rev2/${name}`);
+  });
   return {
     version: "rev2",
     describe,
-    links: [
-      buildLink("sections", `/${version}/naf-rev2/sections`),
-      buildLink("divisions", `/${version}/naf-rev2/divisions`),
-      buildLink("groupes", `/${version}/naf-rev2/groupes`),
-      buildLink("classes", `/${version}/naf-rev2/classes`),
-      buildLink("sous-classes", `/${version}/naf-rev2/sous-classes`),
-    ],
-  };
-}
-
-function createRubriques(rubriques, parent, describe, version) {
-  return {
-    version: "rev2",
-    describe,
-    count: rubriques.length,
-    parent: parent,
-    links: [...createLinks(rubriques, version)],
+    links,
   };
 }
 
@@ -71,7 +52,7 @@ function createPath(naf, version) {
   path[`/${version}/naf-rev2/divisions`] = createRubriques(
     naf.divisions,
     buildLink("sections", `/${version}/naf-rev2/sections`),
-    "sections",
+    "divisions",
     version
   );
   path[`/${version}/naf-rev2/groupes`] = createRubriques(
@@ -123,14 +104,32 @@ function findPath(naf, niveau, code, version) {
   return undefined;
 }
 
+function isQueryEmpty(query) {
+  return Object.keys(query).length === 0;
+}
+
 async function load(version) {
   const naf = await loadFile();
   const levelMap = createLevelMap(naf);
   const pathMap = createPath(levelMap, version);
 
-  return function (path, niveau, code) {
+  return function (path, query, niveau, code) {
     if (path in pathMap) {
       return pathMap[path];
+    } else if (!isQueryEmpty(query)) {
+      const response = resolveQuery(
+        path,
+        query,
+        niveau,
+        code,
+        levelMap,
+        naf,
+        version
+      );
+      if (response) {
+        pathMap[path] = response;
+      }
+      return response;
     } else {
       const response = findPath(naf, niveau, code, version);
       if (response) {

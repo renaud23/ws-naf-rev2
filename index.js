@@ -18,8 +18,8 @@ loadNaf(VERSION).then(function (getPath) {
 
   app.get(`/${VERSION}/naf-rev2/:niveau`, (req, res) => {
     const { niveau } = req.params;
-    const path = `/${VERSION}/naf-rev2/${niveau}`;
-    const response = getPath(path, niveau);
+    const path = req.originalUrl; //`/${VERSION}/naf-rev2/${niveau}`;
+    const response = getPath(path, req.query, niveau);
 
     if (response) {
       res.status(200).json(response);
@@ -31,7 +31,7 @@ loadNaf(VERSION).then(function (getPath) {
   app.get(`/${VERSION}/naf-rev2/:niveau/:code`, (req, res) => {
     const { niveau, code } = req.params;
     const href = `/${VERSION}/naf-rev2/${niveau}/${code}`;
-    const response = getPath(href, niveau, code);
+    const response = getPath(href, req.query, niveau, code);
 
     if (response) {
       res.status(200).json(response);
