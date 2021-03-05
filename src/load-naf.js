@@ -1,11 +1,4 @@
-import resolveQuery from "./resolve-query";
-import buildLink from "./build-link";
-import createRubriques from "./create-rubriques";
-import NIVEAUX from "./naf-niveaux";
 const fs = require("fs");
-
-const describe =
-  "La NAF, nomenclature d'activités française, est une nomenclature des activités économiques productives, principalement élaborée pour faciliter l'organisation de l'information économique et sociale. Afin de faciliter les comparaisons internationales, elle a la même structure que la nomenclature d'activités européenne NACE, elle-même dérivée de la nomenclature internationale CITI.";
 
 function loadFile() {
   return new Promise(function (resolve, reject) {
@@ -29,116 +22,90 @@ function createLevelMap(naf) {
   }, {});
 }
 
-function makeRoot(naf, version) {
-  const links = Object.keys(NIVEAUX).map(function (name) {
-    return buildLink(name, `/${version}/naf-rev2/${name}`);
-  });
-  return {
-    version: "rev2",
-    describe,
-    links,
-  };
-}
+// function makeRoot(naf, version) {
+//   const links = Object.keys(NIVEAUX).map(function (name) {
+//     return buildLink(name, `/${version}/naf-rev2/${name}`);
+//   });
+//   return {
+//     version: "rev2",
+//     describe,
+//     links,
+//   };
+// }
 
-function createPath(naf, version) {
-  const path = {};
-  path[`/${version}/naf-rev2`] = makeRoot(naf, version);
-  path[`/${version}/naf-rev2/sections`] = createRubriques(
-    naf.sections,
-    buildLink("naf-rev2", `/${version}/naf-rev2`),
-    "sections",
-    version
-  );
-  path[`/${version}/naf-rev2/divisions`] = createRubriques(
-    naf.divisions,
-    buildLink("sections", `/${version}/naf-rev2/sections`),
-    "divisions",
-    version
-  );
-  path[`/${version}/naf-rev2/groupes`] = createRubriques(
-    naf.groupes,
-    buildLink("divisions", `/${version}/naf-rev2/divisions`),
-    "groupes",
-    version
-  );
-  path[`/${version}/naf-rev2/classes`] = createRubriques(
-    naf.classes,
-    buildLink("groupes", `/${version}/naf-rev2/groupes`),
-    "classes",
-    version
-  );
-  path[`/${version}/naf-rev2/sous-classes`] = createRubriques(
-    naf.sousClasses,
-    buildLink("classes", `/${version}/naf-rev2/classes`),
-    "sous-classes",
-    version
-  );
+// function createPath(naf, version) {
+//   const path = {};
+//   path[`/${version}/naf-rev2`] = makeRoot(naf, version);
+//   path[`/${version}/naf-rev2/sections`] = createRubriques(
+//     naf.sections,
+//     buildLink("naf-rev2", `/${version}/naf-rev2`),
+//     "sections",
+//     version
+//   );
+//   path[`/${version}/naf-rev2/divisions`] = createRubriques(
+//     naf.divisions,
+//     buildLink("sections", `/${version}/naf-rev2/sections`),
+//     "divisions",
+//     version
+//   );
+//   path[`/${version}/naf-rev2/groupes`] = createRubriques(
+//     naf.groupes,
+//     buildLink("divisions", `/${version}/naf-rev2/divisions`),
+//     "groupes",
+//     version
+//   );
+//   path[`/${version}/naf-rev2/classes`] = createRubriques(
+//     naf.classes,
+//     buildLink("groupes", `/${version}/naf-rev2/groupes`),
+//     "classes",
+//     version
+//   );
+//   path[`/${version}/naf-rev2/sous-classes`] = createRubriques(
+//     naf.sousClasses,
+//     buildLink("classes", `/${version}/naf-rev2/classes`),
+//     "sous-classes",
+//     version
+//   );
 
-  return path;
-}
+//   return path;
+// }
 
-function createRubriqueLink(rubrique, version) {
-  const { niveau, code } = rubrique;
-  return buildLink(niveau, `/${version}/naf-rev2/${niveau}/${code}`);
-}
+// function createRubriqueLink(rubrique, version) {
+//   const { niveau, code } = rubrique;
+//   return buildLink(niveau, `/${version}/naf-rev2/${niveau}/${code}`);
+// }
 
-function findPath(naf, niveau, code, version) {
-  if (code in naf) {
-    const { libelle, parent, children } = naf[code];
-    let childrenLinks,
-      parentLink = `/${version}/naf-rev2`;
-    if (children) {
-      childrenLinks = children.map((c) => createRubriqueLink(naf[c], version));
-    }
-    if (parent) {
-      parentLink = createRubriqueLink(naf[parent], version);
-    }
-    return {
-      libelle,
-      code,
-      niveau,
-      children: { count: childrenLinks.length, links: childrenLinks },
-      parent: parentLink ? { links: [parentLink] } : undefined,
-    };
-  }
-  return undefined;
-}
+// function findPath(naf, niveau, code, version) {
+//   if (code in naf) {
+//     const { libelle, parent, children } = naf[code];
+//     let childrenLinks,
+//       parentLink = `/${version}/naf-rev2`;
+//     if (children) {
+//       childrenLinks = children.map((c) => createRubriqueLink(naf[c], version));
+//     }
+//     if (parent) {
+//       parentLink = createRubriqueLink(naf[parent], version);
+//     }
+//     return {
+//       libelle,
+//       code,
+//       niveau,
+//       children: { count: childrenLinks.length, links: childrenLinks },
+//       parent: parentLink ? { links: [parentLink] } : undefined,
+//     };
+//   }
+//   return undefined;
+// }
 
-function isQueryEmpty(query) {
-  return Object.keys(query).length === 0;
-}
+// function isQueryEmpty(query) {
+//   return Object.keys(query).length === 0;
+// }
 
 async function load(version) {
-  const naf = await loadFile();
-  const levelMap = createLevelMap(naf);
-  const pathMap = createPath(levelMap, version);
+  const codes = await loadFile();
+  const niveaux = createLevelMap(codes);
 
-  return function (path, query, niveau, code) {
-    if (path in pathMap) {
-      return pathMap[path];
-    } else if (!isQueryEmpty(query)) {
-      const response = resolveQuery(
-        path,
-        query,
-        niveau,
-        code,
-        levelMap,
-        naf,
-        version
-      );
-      if (response) {
-        pathMap[path] = response;
-      }
-      return response;
-    } else {
-      const response = findPath(naf, niveau, code, version);
-      if (response) {
-        pathMap[path] = response;
-        return response;
-      }
-    }
-    return undefined;
-  };
+  return { niveaux, codes };
 }
 
 export default load;
