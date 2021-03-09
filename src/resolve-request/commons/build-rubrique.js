@@ -36,6 +36,11 @@ export function buildRubriqueSelf(rubrique, version) {
   };
 }
 
+function buildNiveauLink(rubrique, version) {
+  const { niveau } = rubrique;
+  return { [niveau]: buildHypermediaLink(buildLink(niveau, version)) };
+}
+
 export function buildRubrique(rubrique, naf, version) {
   const { code, libelle, niveau, children, parent } = rubrique;
 
@@ -43,7 +48,10 @@ export function buildRubrique(rubrique, naf, version) {
     code,
     libelle,
     niveau,
-    links: buildRubriqueSelf(rubrique, version),
+    links: {
+      ...buildRubriqueSelf(rubrique, version),
+      ...buildNiveauLink(rubrique, version),
+    },
   };
 
   return appendParent(

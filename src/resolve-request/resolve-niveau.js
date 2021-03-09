@@ -1,6 +1,5 @@
 import { buildRubrique, buildRubriqueSelf } from "./commons";
-
-// page, size
+import { buildLink, buildHypermediaLink } from "./commons";
 
 function isPageRequest(query) {
   if ("page" in query && "size" in query) {
@@ -18,10 +17,39 @@ function convertPageParam(query) {
 }
 
 /* */
+// TODO better
+function convertParamUrl(niveau) {
+  if (niveau === "sous-classes") {
+    return "sousClasses";
+  }
+  return niveau;
+}
+
+function getNextPageLink(niveau, start, max, size, version) {
+  const next = start + 1;
+
+  if (next <= max) {
+    return buildHypermediaLink(
+      buildLink(`/${niveau}?page=${next}&size=${size}`, version)
+    );
+  }
+  return undefined;
+}
+
+function getPreviousPageLink(niveau, start, size, version) {
+  const next = start - 1;
+
+  if (next > 0) {
+    return buildHypermediaLink(
+      buildLink(`/${niveau}?page=${next}&size=${size}`, version)
+    );
+  }
+  return undefined;
+}
 
 function withPagination(request, naf, version) {
   const { params, query } = request;
-  const { niveau } = params;
+  const niveau = convertParamUrl(params.niveau);
   const { niveaux } = naf;
   const rubriques = niveaux[niveau];
   const max = rubriques.length;
@@ -34,7 +62,17 @@ function withPagination(request, naf, version) {
       return buildRubrique(rubrique, naf, version);
     });
 
-    return { [niveau]: sub, links: {} };
+    const next = getNextPageLink(
+      niveau,
+      page,
+      Math.ceil(max / size),
+      size,
+      version
+    );
+
+    const previous = getPreviousPageLink(niveau, page, size, version);
+
+    return { [niveau]: sub, links: { next, previous } };
   }
 
   return undefined;
